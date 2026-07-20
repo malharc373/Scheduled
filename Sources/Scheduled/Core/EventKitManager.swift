@@ -57,11 +57,178 @@ final class EventKitManager {
 
     // MARK: - Public entry point
 
+    /// Applies one parsed item — create, update, or delete — and returns a
+    /// human-readable summary line.
+    func apply(_ item: ScheduleItem) async throws -> String {
+        switch item.resolvedAction {
+        case .create: return try await create(item)
+        case .update: return try await update(item)
+        case .delete: return try await delete(item)
+        }
+    }
+
     /// Creates one item and returns a human-readable summary line.
     func create(_ item: ScheduleItem) async throws -> String {
         switch item.kind {
         case .event:    return try await createEvent(item)
         case .reminder: return try await createReminder(item)
+        }
+    }
+
+    // MARK: - Update / Delete
+
+    /// Finds the best existing match and applies the item's fields as new values.
+    private func update(_ item: ScheduleItem) async throws -> String {
+        let title = matchTitle(item)
+        guard !title.isEmpty else {
+            throw EventKitError.missingStart("Nothing specified to update.")
+        }
+        switch item.kind {
+        case .event:
+            try await ensureEventAccess()
+            guard let event = try findEvents(title: title, near: matchDate(item)).first else {
+                return "🔍 No event matching “\(title)” found to update."
+            }
+            applyEventChanges(event, from: item)
+            do {
+                // Operate on the single named occurrence, not the whole series.
+                try store.save(event, span: .thisEvent, commit: true)
+            } catch { throw EventKitError.save(error.localizedDescription) }
+            return summary(prefix: "✏️ Updated event", item: item,
+                           date: event.startDate, allDay: event.isAllDay)
+        case .reminder:
+            try await ensureReminderAccess()
+            guard let reminder = await findReminders(title: title).first else {
+                return "🔍 No reminder matching “\(title)” found to update."
+            }
+            applyReminderChanges(reminder, from: item)
+            do { try store.save(reminder, commit: true) }
+            catch { throw EventKitError.save(error.localizedDescription) }
+            let due = reminder.dueDateComponents.flatMap { Calendar.current.date(from: $0) }
+            return summary(prefix: "✏️ Updated reminder", item: item, date: due, allDay: false)
+        }
+    }
+
+    /// Removes every existing item matching the request. Reports how many and
+    /// which, so the user can see exactly what was deleted.
+    private func delete(_ item: ScheduleItem) async throws -> String {
+        let title = matchTitle(item)
+        guard !title.isEmpty else {
+            throw EventKitError.missingStart("Nothing specified to delete.")
+        }
+        switch item.kind {
+        case .event:
+            try await ensureEventAccess()
+            let matches = try findEvents(title: title, near: matchDate(item))
+            guard !matches.isEmpty else {
+                return "🔍 No event matching “\(title)” found to delete."
+            }
+            for event in matches {
+                // Remove the single named occurrence, not the whole series.
+                try store.remove(event, span: .thisEvent, commit: false)
+            }
+            try store.commit()
+            let names = matches.compactMap { $0.title }.joined(separator: ", ")
+            return "🗑️ Deleted \(matches.count) event\(matches.count == 1 ? "" : "s"): \(names)"
+        case .reminder:
+            try await ensureReminderAccess()
+            let matches = await findReminders(title: title)
+            guard !matches.isEmpty else {
+                return "🔍 No reminder matching “\(title)” found to delete."
+            }
+            for reminder in matches { try store.remove(reminder, commit: false) }
+            try store.commit()
+            return "🗑️ Deleted \(matches.count) reminder\(matches.count == 1 ? "" : "s") matching “\(title)”."
+        }
+    }
+
+    // MARK: - Matching helpers
+
+    private func matchTitle(_ item: ScheduleItem) -> String {
+        (item.match?.title ?? item.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func matchDate(_ item: ScheduleItem) -> Date? {
+        if let d = item.match?.date, let (date, _) = DateParsing.parse(d) { return date }
+        if let s = item.start, let (date, _) = DateParsing.parse(s) { return date }
+        return nil
+    }
+
+    /// Events whose title contains `title` (case-insensitive). A known date
+    /// narrows the search to a ±1-day window; otherwise the next 60 days.
+    private func findEvents(title: String, near date: Date?) throws -> [EKEvent] {
+        let cal = Calendar.current
+        let start: Date
+        let end: Date
+        if let date {
+            start = cal.date(byAdding: .day, value: -1, to: date) ?? date
+            end   = cal.date(byAdding: .day, value: 2, to: date) ?? date
+        } else {
+            start = Date()
+            end   = cal.date(byAdding: .day, value: 60, to: start) ?? start
+        }
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let needle = title.lowercased()
+        return store.events(matching: predicate)
+            .filter { ($0.title ?? "").lowercased().contains(needle) }
+            .sorted { $0.startDate < $1.startDate }
+    }
+
+    /// Incomplete reminders whose title contains `title` (case-insensitive).
+    private func findReminders(title: String) async -> [EKReminder] {
+        let needle = title.lowercased()
+        let all: [EKReminder] = await withCheckedContinuation { cont in
+            let predicate = store.predicateForReminders(in: nil)
+            store.fetchReminders(matching: predicate) { cont.resume(returning: $0 ?? []) }
+        }
+        return all.filter { !$0.isCompleted && ($0.title ?? "").lowercased().contains(needle) }
+    }
+
+    /// Overwrites only the fields the model supplied on an update.
+    private func applyEventChanges(_ event: EKEvent, from item: ScheduleItem) {
+        if let title = item.title, !title.isEmpty { event.title = title }
+        if let notes = item.notes { event.notes = notes }
+        if let location = item.location { event.location = location }
+        if let startStr = item.start, let (start, dateOnly) = DateParsing.parse(startStr) {
+            let isAllDay = item.allDay ?? dateOnly
+            event.isAllDay = isAllDay
+            event.startDate = start
+            if isAllDay {
+                event.endDate = start
+            } else if let endStr = item.end, let (end, _) = DateParsing.parse(endStr), end > start {
+                event.endDate = end
+            } else {
+                event.endDate = start.addingTimeInterval(defaultEventDuration)
+            }
+        } else if let endStr = item.end, let (end, _) = DateParsing.parse(endStr) {
+            event.endDate = end
+        }
+        if let alarms = item.alarmsMinutesBefore {
+            event.alarms?.forEach { event.removeAlarm($0) }
+            for minutes in alarms { event.addAlarm(EKAlarm(relativeOffset: -Double(minutes) * 60)) }
+        }
+        if let rule = buildRule(item.recurrence) {
+            event.recurrenceRules = [rule]
+        }
+    }
+
+    /// Overwrites only the fields the model supplied on an update.
+    private func applyReminderChanges(_ reminder: EKReminder, from item: ScheduleItem) {
+        if let title = item.title, !title.isEmpty { reminder.title = title }
+        if let notes = item.notes { reminder.notes = notes }
+        var due = reminder.dueDateComponents.flatMap { Calendar.current.date(from: $0) }
+        if let startStr = item.start, let (date, dateOnly) = DateParsing.parse(startStr) {
+            due = date
+            let comps: Set<Calendar.Component> = dateOnly
+                ? [.year, .month, .day]
+                : [.year, .month, .day, .hour, .minute]
+            reminder.dueDateComponents = Calendar.current.dateComponents(comps, from: date)
+        }
+        if let alarms = item.alarmsMinutesBefore, let due {
+            reminder.alarms?.forEach { reminder.removeAlarm($0) }
+            for minutes in alarms {
+                reminder.addAlarm(EKAlarm(absoluteDate: due.addingTimeInterval(-Double(minutes) * 60)))
+            }
         }
     }
 
@@ -74,11 +241,11 @@ final class EventKitManager {
         }
         guard let startStr = item.start,
               let (start, dateOnly) = DateParsing.parse(startStr) else {
-            throw EventKitError.missingStart("Event \"\(item.title)\" had no usable start time.")
+            throw EventKitError.missingStart("Event \"\(item.title ?? "Untitled")\" had no usable start time.")
         }
 
         let event = EKEvent(eventStore: store)
-        event.title = item.title
+        event.title = item.title ?? "Untitled"
         event.notes = item.notes
         event.location = item.location
         event.calendar = calendar
@@ -121,7 +288,7 @@ final class EventKitManager {
         }
 
         let reminder = EKReminder(eventStore: store)
-        reminder.title = item.title
+        reminder.title = item.title ?? "Untitled"
         reminder.notes = item.notes
         reminder.calendar = calendar
 
@@ -212,7 +379,7 @@ final class EventKitManager {
         df.locale = Locale(identifier: "en_US")
         df.dateFormat = allDay ? "EEE, MMM d" : "EEE, MMM d 'at' h:mm a"
 
-        var parts = ["\(prefix): \(item.title)"]
+        var parts = ["\(prefix): \(item.title ?? "(untitled)")"]
         if let date { parts.append(df.string(from: date)) }
         if let rec = item.recurrence { parts.append("(\(recurrenceLabel(rec)))") }
         if let alarms = item.alarmsMinutesBefore, !alarms.isEmpty {

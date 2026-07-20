@@ -10,16 +10,37 @@ struct IntentResponse: Codable {
     var clarification: String?
 }
 
-/// A single Calendar event or Reminder to create.
+/// A single Calendar event or Reminder to create, update, or delete.
 struct ScheduleItem: Codable {
     enum Kind: String, Codable {
         case event
         case reminder
     }
 
+    /// What to do with this item. Defaults to `.create` when the model omits it.
+    enum Action: String, Codable {
+        case create
+        case update
+        case delete
+    }
+
+    /// How to locate an existing item for an `update`/`delete`. The model rarely
+    /// knows exact times, so we match by title (substring, case-insensitive)
+    /// optionally narrowed to a day.
+    struct Match: Codable {
+        /// Title (or a distinctive keyword) of the existing item to find.
+        var title: String?
+        /// Approximate local date "yyyy-MM-dd" to disambiguate, or nil to search
+        /// a forward window.
+        var date: String?
+    }
+
     /// "event" => time-blocked Calendar entry. "reminder" => task/todo.
     var kind: Kind
-    var title: String
+    /// create (default) / update / delete.
+    var action: Action?
+    /// Title of the item. May be null on update/delete (the target is in `match`).
+    var title: String?
     var notes: String?
     var location: String?
 
@@ -34,11 +55,18 @@ struct ScheduleItem: Codable {
     /// Alarm offsets in minutes *before* the start/due time. 0 == at time of event.
     var alarmsMinutesBefore: [Int]?
 
+    /// Present on `update`/`delete`: identifies which existing item to act on.
+    var match: Match?
+
+    /// The effective action, defaulting to `.create`.
+    var resolvedAction: Action { action ?? .create }
+
     enum CodingKeys: String, CodingKey {
-        case kind, title, notes, location, start, end
+        case kind, action, title, notes, location, start, end
         case allDay = "all_day"
         case recurrence
         case alarmsMinutesBefore = "alarms_minutes_before"
+        case match
     }
 }
 

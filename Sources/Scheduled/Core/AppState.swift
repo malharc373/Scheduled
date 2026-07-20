@@ -77,7 +77,7 @@ final class AppState: ObservableObject {
 
             var summaries: [String] = []
             for item in intent.items {
-                let summary = try await eventKit.create(item)
+                let summary = try await eventKit.apply(item)
                 summaries.append(summary)
                 appendLog(summary, isError: false)
             }

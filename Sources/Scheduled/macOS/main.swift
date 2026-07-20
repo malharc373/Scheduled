@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 // Entry point. Two modes:
-//   • No text args        -> launch the menu-bar app (global hotkey ⌘⌥Space).
+//   • No text args        -> launch the menu-bar app (global hotkey ⌘⌥J).
 //   • Text args provided  -> headless CLI: parse + create + print, then exit.
 //     e.g.  scheduled "gym everyday at 6am"
 // This makes the same binary usable from Raycast / Alfred / Shortcuts / cron.
@@ -14,7 +14,7 @@ if args.first == "--help" || args.first == "-h" {
     Scheduled — natural language → Apple Calendar/Reminders
 
     USAGE:
-      Scheduled                      Launch the menu-bar app (hotkey ⌘⌥Space)
+      Scheduled                      Launch the menu-bar app (hotkey ⌘⌥J)
       Scheduled "<text>"             Parse & schedule one request, then exit
       Scheduled --dry-run "<text>"   Parse only; print JSON intent, create nothing
       Scheduled --plan-day           Build today's checklist in "Today's Plan"
@@ -30,6 +30,9 @@ if args.first == "--help" || args.first == "-h" {
       Scheduled "lecture tomorrow at 2pm for 2 hours"
       Scheduled "remind me to pay bills on Friday at 5pm with a 30m alarm"
       Scheduled "gym every weekday at 6am, alarm 15 min before"
+      Scheduled "move my dentist appointment to 4pm"        # edit an existing item
+      Scheduled "add a 15-minute alarm to gym"              # edit an existing item
+      Scheduled "cancel my dentist appointment next Tuesday"# delete an existing item
       Scheduled --set-routine "gym 6am, meal prep 7am and 6pm, read 30 min at 9pm"
       Scheduled --plan-day
     """)
@@ -112,7 +115,7 @@ func runCLI(_ text: String) -> Never {
                 return
             }
             for item in intent.items {
-                let summary = try await eventKit.create(item)
+                let summary = try await eventKit.apply(item)
                 print(summary)
             }
         } catch {

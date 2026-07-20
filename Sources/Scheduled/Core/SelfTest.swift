@@ -12,6 +12,7 @@ enum SelfTest {
         codeFenceStripping()
         dateParsing()
         intentDecoding()
+        actionDecoding()
 
         if failures.isEmpty {
             print("✅ selftest: all checks passed")
@@ -79,12 +80,42 @@ enum SelfTest {
             expectEqual(intent.items.count, 1, "one item decoded")
             let item = intent.items[0]
             expectEqual(item.kind, .reminder, "kind == reminder")
-            expectEqual(item.title, "pay bills", "title")
+            expectEqual(item.title ?? "", "pay bills", "title")
             expectEqual(item.recurrence?.frequency, .weekly, "weekly recurrence")
             expectEqual(item.recurrence?.daysOfWeek ?? [], ["FR"], "days_of_week")
             expectEqual(item.alarmsMinutesBefore ?? [], [30, 0], "alarm offsets")
         } catch {
             fail("intent decode threw: \(error)")
+        }
+    }
+
+    private static func actionDecoding() {
+        // Omitted action must default to .create.
+        let createJSON = """
+        {"items":[{"kind":"event","title":"gym","start":"2026-07-22T06:00:00"}],
+         "clarification":null}
+        """
+        do {
+            let intent = try JSONDecoder().decode(IntentResponse.self, from: Data(createJSON.utf8))
+            expectEqual(intent.items.first?.resolvedAction, .create, "missing action defaults to create")
+        } catch {
+            fail("create-default decode threw: \(error)")
+        }
+
+        // Delete with a match block.
+        let deleteJSON = """
+        {"items":[{"kind":"event","action":"delete","title":"Dentist",
+                   "match":{"title":"Dentist","date":"2026-07-28"}}],
+         "clarification":null}
+        """
+        do {
+            let intent = try JSONDecoder().decode(IntentResponse.self, from: Data(deleteJSON.utf8))
+            let item = intent.items.first
+            expectEqual(item?.resolvedAction, .delete, "action == delete")
+            expectEqual(item?.match?.title, "Dentist", "match title")
+            expectEqual(item?.match?.date, "2026-07-28", "match date")
+        } catch {
+            fail("delete decode threw: \(error)")
         }
     }
 

@@ -9,6 +9,8 @@ Type something like:
 - `gym everyday at 6am`
 - `lecture tomorrow at 2pm for 2 hours`
 - `remind me to pay bills on Friday at 5pm with a 30m alarm`
+- `move my dentist appointment to 4pm` — edits the existing event
+- `cancel gym on Friday` — deletes the existing item
 - `plan my day`
 
 …and it lands in the right place instantly.
@@ -25,7 +27,7 @@ Type something like:
 | --- | --- |
 | **Real-time iCloud sync** | Writes directly to the system EventKit store — the exact store iCloud already syncs. No custom backend, no polling. |
 | **Native alarms on every device** | Uses `EKAlarm` on events/reminders, so alerts fire on iPhone/iPad/Mac/Watch. |
-| **Frictionless capture** | Menu-bar icon + global hotkey **⌘⌥Space** (Carbon hotkey — no Accessibility permission needed). |
+| **Frictionless capture** | Menu-bar icon + global hotkey **⌘⌥J** (Carbon hotkey — no Accessibility permission needed). |
 | **Accurate relative dates** | Current date/time/timezone are sent to the LLM as ground truth. |
 | **Reliable structured parsing** | OpenRouter call forces JSON output and is defensively decoded. |
 | **Low friction install** | Command-Line-Tools-only build (no full Xcode). `make` assembles a signed `.app`. |
@@ -109,7 +111,7 @@ For normal use — build/install once, grant once — it's already one-time.
 ## Using it
 
 ### Menu-bar app
-- **Left-click** the calendar icon (or press **⌘⌥Space**) to open the capture box.
+- **Left-click** the calendar icon (or press **⌘⌥J**) to open the capture box.
 - Type your request, press **↵**. Press **esc** to dismiss.
 - **Right-click** the icon for the menu: *New Schedule*, *Plan My Day*,
   *Settings*, *Quit*.
@@ -145,6 +147,30 @@ scheduled --help
 ```
 
 Exit codes: `0` success · `1` error · `2` missing key/usage · `3` needs clarification.
+
+### Editing & deleting
+
+Beyond creating, the same natural-language box can **update** or **delete**
+existing events and reminders. The model infers the action from the verb:
+
+```bash
+scheduled "move my dentist appointment to 4pm"   # update time
+scheduled "rename standup to team sync"          # update title
+scheduled "add a 15-minute alarm to gym"         # update alarms
+scheduled "cancel my dentist appointment"        # delete
+scheduled "delete gym on Friday"                 # delete that occurrence
+```
+
+How it works: create / update / delete map to an `action` field, and for
+update/delete the model emits a `match` (title + optional date) used to locate
+the existing item by title (case-insensitive) within a date window. Notes:
+
+- Matching is by **title**; give a distinctive keyword and a date if you have
+  duplicates. Delete reports exactly what it removed.
+- Update/delete act on the **single named occurrence** of a recurring series,
+  not the whole series — manage series-wide changes in the Calendar app.
+- `--dry-run` shows the parsed `action`/`match` and changes **nothing**, so it's
+  the safe way to preview a delete.
 
 ---
 
@@ -194,7 +220,7 @@ Source layout (`Sources/Scheduled/`):
 | --- | --- |
 | `main.swift` | Entry point; GUI vs CLI dispatch and CLI subcommands |
 | `AppDelegate.swift` | Menu bar, floating capture panel, settings window |
-| `HotKey.swift` | Global ⌘⌥Space via Carbon |
+| `HotKey.swift` | Global ⌘⌥J via Carbon |
 | `CaptureView.swift` / `SettingsView.swift` | SwiftUI UI |
 | `AppState.swift` | Orchestrates parse → create; command routing |
 | `OpenRouterClient.swift` | LLM calls + prompts + JSON decoding |
@@ -272,7 +298,7 @@ available on the runner).
 - **Nothing created / access denied** — grant Calendar & Reminders in System
   Settings, then retry. TCC identifies the app by its signature, so always run
   the built `dist/Scheduled.app` (the Makefile ad-hoc-signs it).
-- **Hotkey does nothing** — another app may own ⌘⌥Space; quit it or rebind (see
+- **Hotkey does nothing** — another app may own ⌘⌥J; quit it or rebind (see
   `HotKey.swift`).
 
 ---

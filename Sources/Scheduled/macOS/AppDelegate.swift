@@ -19,7 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         GlobalHotKey.shared.onPress = { [weak self] in
             DispatchQueue.main.async { self?.toggleCapture() }
         }
-        GlobalHotKey.shared.register() // ⌘⌥Space
+        GlobalHotKey.shared.register() // ⌘⌥J
 
         // First-run: if no key configured, nudge the user to settings.
         if !state.hasAPIKey {
@@ -53,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showMenu() {
         let menu = NSMenu()
-        menu.addItem(withTitle: "New Schedule…  (⌘⌥Space)",
+        menu.addItem(withTitle: "New Schedule…  (⌘⌥J)",
                      action: #selector(toggleCapture), keyEquivalent: "")
         menu.addItem(withTitle: "Plan My Day", action: #selector(planMyDay), keyEquivalent: "")
         menu.addItem(.separator())

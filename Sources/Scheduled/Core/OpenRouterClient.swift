@@ -194,6 +194,7 @@ struct OpenRouterClient {
           "items": [
             {
               "kind": "event" | "reminder",
+              "action": "create" | "update" | "delete",
               "title": "string",
               "notes": "string or null",
               "location": "string or null",
@@ -207,7 +208,8 @@ struct OpenRouterClient {
                 "count": null,
                 "until": "yyyy-MM-dd" | null
               } | null,
-              "alarms_minutes_before": [30, 0]
+              "alarms_minutes_before": [30, 0],
+              "match": { "title": "string", "date": "yyyy-MM-dd" | null } | null
             }
           ],
           "clarification": "string or null"
@@ -218,6 +220,18 @@ struct OpenRouterClient {
         - Choose "event" for time-blocked activities (meetings, gym, lectures,
           appointments). Choose "reminder" for tasks/todos ("pay bills",
           "call mom", "buy milk").
+        - "action" defaults to "create". Use "update" to change an EXISTING item
+          ("move my dentist appointment to 4pm", "add a 15-minute alarm to gym",
+          "rename standup to sync"). Use "delete" to remove one ("cancel my
+          dentist appointment", "delete gym on Friday", "remove the pay-bills
+          reminder"). Verbs like move/change/reschedule/rename/update => "update";
+          cancel/delete/remove/clear => "delete".
+        - For "update"/"delete", set "match.title" to the existing item's title or
+          a distinctive keyword from it, and "match.date" to its date if the user
+          gave one (else null). "kind" must match the target (event vs reminder).
+        - For "update", ALSO fill the fields being changed with their NEW values
+          (e.g. new "start"/"end"/"alarms_minutes_before"/"title"). Leave fields
+          you are not changing as null. For "delete", only "match" matters.
         - If a duration is given ("for 2 hours"), set "end" accordingly.
           If an event has a start but no duration, leave "end" null (a default
           length will be applied).
