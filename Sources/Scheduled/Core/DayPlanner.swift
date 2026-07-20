@@ -161,7 +161,10 @@ final class DayPlanner {
         let existing = await fetchReminders(matching: predicate)
         let dateTag = Self.dateTag(dayStart)
         var removedAny = false
-        for reminder in existing where (reminder.notes ?? "").contains(dateTag) {
+        for reminder in existing where {
+            let notes = reminder.notes ?? ""
+            return notes.contains(Self.marker) && notes.contains(dateTag)
+        }() {
             try store.remove(reminder, commit: false)
             removedAny = true
         }

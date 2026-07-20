@@ -28,9 +28,12 @@ BIN="$APP/Contents/MacOS/Scheduled"
 # 3. API key (optional) ------------------------------------------------------
 if [ -n "${OPENROUTER_API_KEY:-}" ]; then
   say "Storing OPENROUTER_API_KEY from environment into the login Keychain…"
+  # -A: accessible without a per-run Keychain access prompt. The app + CLI shim
+  # are ad-hoc signed (unstable identity), so a per-app ACL would re-prompt on
+  # every run/rebuild. Trade-off: any app you run can read this key.
   security add-generic-password \
     -a "OPENROUTER_API_KEY" -s "com.scheduled.app" \
-    -w "$OPENROUTER_API_KEY" -U >/dev/null 2>&1 || true
+    -w "$OPENROUTER_API_KEY" -U -A >/dev/null 2>&1 || true
 else
   echo "  (No OPENROUTER_API_KEY in env — set it later in the app's Settings."
   echo "   Or: export OPENROUTER_API_KEY=sk-or-... before running.)"
@@ -59,7 +62,7 @@ cat <<EOF
 
 ${BOLD}Done.${RESET}
   • Menu-bar icon (calendar) → click to capture, right-click for menu.
-  • Global hotkey: ⌘⌥Space
+  • Global hotkey: ⌘⌃J
   • CLI:  scheduled "gym everyday at 6am"
   • Settings → paste your OpenRouter API key if you didn't set the env var.
 EOF

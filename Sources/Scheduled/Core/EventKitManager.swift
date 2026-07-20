@@ -86,7 +86,7 @@ final class EventKitManager {
         switch item.kind {
         case .event:
             try await ensureEventAccess()
-            guard let event = try findEvents(title: title, near: matchDate(item)).first else {
+            guard let event = try findEvents(title: title, near: updateAnchor(item)).first else {
                 return "🔍 No event matching “\(title)” found to update."
             }
             applyEventChanges(event, from: item)
@@ -152,6 +152,13 @@ final class EventKitManager {
         if let d = item.match?.date, let (date, _) = DateParsing.parse(d) { return date }
         if let s = item.start, let (date, _) = DateParsing.parse(s) { return date }
         return nil
+    }
+
+    /// Anchor for locating the existing event on an *update*. Only an explicit
+    /// `match.date` counts — the item's `start` is the NEW time, not where the
+    /// existing event currently lives, so using it would search the wrong day.
+    private func updateAnchor(_ item: ScheduleItem) -> Date? {
+        item.match?.date.flatMap { DateParsing.parse($0)?.date }
     }
 
     /// Events whose title contains `title` (case-insensitive). A known date
