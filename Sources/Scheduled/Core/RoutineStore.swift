@@ -15,13 +15,22 @@ struct Routine: Codable {
     static let empty = Routine(items: [])
 }
 
-/// Persists the routine template as JSON at ~/.config/scheduled/routine.json.
+/// Persists the routine template as JSON. On macOS this lives at
+/// ~/.config/scheduled/routine.json (convenient for the CLI); on iOS it lives in
+/// the app's sandboxed Application Support directory.
 enum RoutineStore {
     static var configDir: URL {
-        let base = FileManager.default.homeDirectoryForCurrentUser
+#if os(macOS)
+        return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".config", isDirectory: true)
             .appendingPathComponent("scheduled", isDirectory: true)
-        return base
+#else
+        let support = (try? FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask,
+            appropriateFor: nil, create: true))
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return support.appendingPathComponent("scheduled", isDirectory: true)
+#endif
     }
 
     static var fileURL: URL {
