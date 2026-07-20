@@ -41,7 +41,7 @@ struct OpenRouterClient {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         // Optional attribution headers recommended by OpenRouter.
-        request.setValue("https://github.com/scheduled-app/scheduled",
+        request.setValue("https://github.com/malharc373/Scheduled",
                          forHTTPHeaderField: "HTTP-Referer")
         request.setValue("Scheduled", forHTTPHeaderField: "X-Title")
 

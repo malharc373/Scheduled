@@ -303,6 +303,15 @@ available on the runner).
 
 ---
 
+## Privacy
+
+Scheduled is **bring-your-own-key**: your OpenRouter API key is stored only in
+your device's Keychain and is never sent anywhere except OpenRouter. The text of
+each request is sent to OpenRouter to interpret it into an event/reminder — that
+is the only data that leaves your device. Events and reminders are written to
+your own Apple (EventKit/iCloud) account. No analytics, no accounts, no backend.
+See [PRIVACY.md](PRIVACY.md).
+
 ## License
 
-MIT © Scheduled
+MIT © 2026 Malhar Falke

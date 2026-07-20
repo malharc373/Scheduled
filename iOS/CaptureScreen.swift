@@ -7,6 +7,8 @@ struct CaptureScreen: View {
 
     @State private var input: String = ""
     @State private var showSettings = false
+    @State private var showOnboarding = false
+    @AppStorage("didOnboard") private var didOnboard = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -36,6 +38,12 @@ struct CaptureScreen: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsScreen(state: state)
+            }
+            .fullScreenCover(isPresented: $showOnboarding, onDismiss: { didOnboard = true }) {
+                OnboardingScreen(state: state)
+            }
+            .onAppear {
+                if !state.hasAPIKey && !didOnboard { showOnboarding = true }
             }
         }
     }
