@@ -27,7 +27,7 @@ Type something like:
 | --- | --- |
 | **Real-time iCloud sync** | Writes directly to the system EventKit store — the exact store iCloud already syncs. No custom backend, no polling. |
 | **Native alarms on every device** | Uses `EKAlarm` on events/reminders, so alerts fire on iPhone/iPad/Mac/Watch. |
-| **Frictionless capture** | Menu-bar icon + global hotkey **⌘⌥J** (Carbon hotkey — no Accessibility permission needed). |
+| **Frictionless capture** | Menu-bar icon + global hotkey **⌘⌃J** (Carbon hotkey — no Accessibility permission needed). |
 | **Accurate relative dates** | Current date/time/timezone are sent to the LLM as ground truth. |
 | **Reliable structured parsing** | OpenRouter call forces JSON output and is defensively decoded. |
 | **Low friction install** | Command-Line-Tools-only build (no full Xcode). `make` assembles a signed `.app`. |
@@ -73,7 +73,9 @@ The key is read in this order:
 2. **`OPENROUTER_API_KEY` environment variable** — handy for CLI/CI.
 
 Nothing is ever written to the repo. Choose the model in Settings (default:
-`anthropic/claude-haiku-4.5` — fast and cheap for this task).
+`openai/gpt-oss-20b:free` — a free, rate-limited model that handles the strict
+JSON well). Free model slugs end in `:free`; pick a paid one like
+`anthropic/claude-haiku-4.5` if you want maximum reliability.
 
 ---
 
@@ -111,7 +113,7 @@ For normal use — build/install once, grant once — it's already one-time.
 ## Using it
 
 ### Menu-bar app
-- **Left-click** the calendar icon (or press **⌘⌥J**) to open the capture box.
+- **Left-click** the calendar icon (or press **⌘⌃J**) to open the capture box.
 - Type your request, press **↵**. Press **esc** to dismiss.
 - **Right-click** the icon for the menu: *New Schedule*, *Plan My Day*,
   *Settings*, *Quit*.
@@ -220,7 +222,7 @@ Source layout (`Sources/Scheduled/`):
 | --- | --- |
 | `main.swift` | Entry point; GUI vs CLI dispatch and CLI subcommands |
 | `AppDelegate.swift` | Menu bar, floating capture panel, settings window |
-| `HotKey.swift` | Global ⌘⌥J via Carbon |
+| `HotKey.swift` | Global ⌘⌃J via Carbon |
 | `CaptureView.swift` / `SettingsView.swift` | SwiftUI UI |
 | `AppState.swift` | Orchestrates parse → create; command routing |
 | `OpenRouterClient.swift` | LLM calls + prompts + JSON decoding |
@@ -292,13 +294,15 @@ available on the runner).
 ## Troubleshooting
 
 - **"No endpoints found for <model>"** — the model slug is wrong/unavailable.
-  Pick another in Settings (e.g. `anthropic/claude-haiku-4.5`).
+  Pick another in Settings (e.g. `openai/gpt-oss-20b:free` or, for a paid
+  option, `anthropic/claude-haiku-4.5`). Free models rotate — if one stops
+  working, choose another `:free` slug from openrouter.ai/models.
 - **HTTP 402 / needs more credits** — top up your OpenRouter account. The client
   already caps `max_tokens` to keep requests tiny.
 - **Nothing created / access denied** — grant Calendar & Reminders in System
   Settings, then retry. TCC identifies the app by its signature, so always run
   the built `dist/Scheduled.app` (the Makefile ad-hoc-signs it).
-- **Hotkey does nothing** — another app may own ⌘⌥J; quit it or rebind (see
+- **Hotkey does nothing** — another app may own ⌘⌃J; quit it or rebind (see
   `HotKey.swift`).
 
 ---

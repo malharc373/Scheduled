@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 
 // Entry point. Two modes:
-//   • No text args        -> launch the menu-bar app (global hotkey ⌘⌥J).
+//   • No text args        -> launch the menu-bar app (global hotkey ⌘⌃J).
 //   • Text args provided  -> headless CLI: parse + create + print, then exit.
 //     e.g.  scheduled "gym everyday at 6am"
 // This makes the same binary usable from Raycast / Alfred / Shortcuts / cron.
@@ -14,7 +14,7 @@ if args.first == "--help" || args.first == "-h" {
     Scheduled — natural language → Apple Calendar/Reminders
 
     USAGE:
-      Scheduled                      Launch the menu-bar app (hotkey ⌘⌥J)
+      Scheduled                      Launch the menu-bar app (hotkey ⌘⌃J)
       Scheduled "<text>"             Parse & schedule one request, then exit
       Scheduled --dry-run "<text>"   Parse only; print JSON intent, create nothing
       Scheduled --plan-day           Build today's checklist in "Today's Plan"

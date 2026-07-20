@@ -2,7 +2,7 @@ import Carbon.HIToolbox
 
 /// Registers a system-wide hotkey via Carbon. `RegisterEventHotKey` does NOT
 /// require Accessibility permission, which keeps first-run friction low.
-/// Default binding: ⌘⌥J (⌘⌥Space collides with macOS "Show Finder search window").
+/// Default binding: ⌘⌃J.
 final class GlobalHotKey {
     static let shared = GlobalHotKey()
 
@@ -13,9 +13,9 @@ final class GlobalHotKey {
 
     private init() {}
 
-    /// keyCode 38 == J. Modifiers default to Command+Option.
+    /// keyCode 38 == J. Modifiers default to Command+Control.
     func register(keyCode: UInt32 = 38,
-                  modifiers: UInt32 = UInt32(cmdKey | optionKey)) {
+                  modifiers: UInt32 = UInt32(cmdKey | controlKey)) {
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)

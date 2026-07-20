@@ -25,7 +25,7 @@ enum OpenRouterError: LocalizedError {
 /// `IntentResponse`. The current date/time/timezone are injected so the model
 /// can resolve relative expressions ("tomorrow", "in 2 hours", "next Monday").
 struct OpenRouterClient {
-    static let defaultModel = "anthropic/claude-haiku-4.5"
+    static let defaultModel = "openai/gpt-oss-20b:free"
 
     let apiKey: String
     let model: String

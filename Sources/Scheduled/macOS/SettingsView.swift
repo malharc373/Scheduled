@@ -10,10 +10,10 @@ struct SettingsView: View {
     @State private var savedFlash = false
 
     private let suggestedModels = [
+        "openai/gpt-oss-20b:free",
+        "google/gemma-4-31b-it:free",
         "anthropic/claude-haiku-4.5",
-        "anthropic/claude-sonnet-4.5",
-        "openai/gpt-4o-mini",
-        "google/gemini-flash-latest"
+        "anthropic/claude-sonnet-4.5"
     ]
 
     var body: some View {
