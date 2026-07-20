@@ -10,6 +10,8 @@
     <string>com.scheduled.app</string>
     <key>CFBundleExecutable</key>
     <string>Scheduled</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -36,6 +38,6 @@
     <string>Scheduled creates reminders from your natural-language input.</string>
 
     <key>NSHumanReadableCopyright</key>
-    <string>Scheduled</string>
+    <string>© 2026 Malhar Falke</string>
 </dict>
 </plist>
