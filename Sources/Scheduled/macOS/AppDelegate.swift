@@ -7,7 +7,7 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let state = AppState()
     private var statusItem: NSStatusItem?
-    private var capturePanel: NSPanel?
+    private var capturePanel: NSWindow?
     private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -95,27 +95,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.makeKeyAndOrderFront(nil)
     }
 
-    private func makeCapturePanel() -> NSPanel {
+    private func makeCapturePanel() -> NSWindow {
         let view = CaptureView(state: state) { [weak self] in
             self?.capturePanel?.orderOut(nil)
         }
         let hosting = NSHostingView(rootView: view)
 
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 200),
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+        // A standard resizable window: supports drag-resize, minimize, and the
+        // green full-screen / zoom (fit-to-size) button. Full screen requires a
+        // normal window level, so we no longer float above other apps.
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 300),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
-        panel.isMovableByWindowBackground = true
-        panel.level = .floating
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.contentView = hosting
-        panel.setContentSize(hosting.fittingSize)
-        return panel
+        window.title = "Scheduled"
+        window.isMovableByWindowBackground = true
+        window.collectionBehavior = [.fullScreenPrimary]
+        window.hidesOnDeactivate = false
+        window.isReleasedWhenClosed = false
+        window.contentView = hosting
+        window.contentMinSize = NSSize(width: 380, height: 200)
+        window.setContentSize(NSSize(width: 460, height: 300))
+        return window
     }
 
     // MARK: - Settings
@@ -131,10 +134,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 260),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
+        window.collectionBehavior = [.fullScreenPrimary]
         window.title = "Scheduled Settings"
         window.contentView = NSHostingView(rootView: view)
         window.center()

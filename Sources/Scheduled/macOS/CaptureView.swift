@@ -13,8 +13,7 @@ struct CaptureView: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            TextField("gym everyday at 6am · lecture tomorrow 2pm for 2h · pay bills Fri 5pm +30m alarm · plan my day",
-                      text: $input, axis: .vertical)
+            TextField("", text: $input, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
                 .lineLimit(1...4)
@@ -32,7 +31,8 @@ struct CaptureView: View {
             }
         }
         .padding(16)
-        .frame(width: 460)
+        .frame(minWidth: 380, idealWidth: 460, maxWidth: .infinity,
+               minHeight: 180, maxHeight: .infinity, alignment: .topLeading)
         .onAppear { focused = true }
         .onExitCommand(perform: onClose) // Esc
     }
@@ -85,7 +85,7 @@ struct CaptureView: View {
                 }
             }
         }
-        .frame(maxHeight: 150)
+        .frame(minHeight: 80, maxHeight: .infinity)
     }
 
     private func submit() {
