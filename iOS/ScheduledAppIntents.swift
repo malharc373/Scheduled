@@ -28,7 +28,7 @@ struct ScheduleTextIntent: AppIntent {
             return .result(dialog: IntentDialog("I need a bit more detail: \(clarification)"))
         }
         let msg = outcome.createdSummaries.joined(separator: "; ")
-        return .result(dialog: IntentDialog(msg.isEmpty ? "Nothing to schedule." : msg))
+        return .result(dialog: IntentDialog("\(msg.isEmpty ? "Nothing to schedule." : msg)"))
     }
 }
 
@@ -46,7 +46,7 @@ struct PlanMyDayIntent: AppIntent {
             return .result(dialog: IntentDialog("Sorry — \(error)"))
         }
         let msg = outcome.createdSummaries.first ?? "Your day is planned."
-        return .result(dialog: IntentDialog(msg))
+        return .result(dialog: IntentDialog("\(msg)"))
     }
 }
 

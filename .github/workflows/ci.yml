@@ -62,9 +62,14 @@ jobs:
 
       - name: Build iOS app (simulator, no signing)
         run: |
+          # `pipefail` propagates xcodebuild's exit status through the grep, so
+          # the job still fails on build errors. The grep trims noisy setup
+          # lines while keeping every error/warning and the final status.
+          # (Never pipe through `tail` — it silently hides compiler errors.)
           set -o pipefail
           xcodebuild build \
             -project Scheduled.xcodeproj \
             -scheme "Scheduled (iOS)" \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO | tail -60
+            CODE_SIGNING_ALLOWED=NO \
+            | grep -iE "error:|warning:|\.swift:|BUILD (SUCCEEDED|FAILED)|Compiling|Linking"
